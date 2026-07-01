@@ -1,32 +1,32 @@
 # Trent's One Piece Trade Binder
 
-A digital trade binder for a One Piece Card Game collection — full card art, rarity-coded badges, quantity owned, and TCGplayer market prices, kept fresh automatically, browsable and searchable in the format of a physical binder.
+A digital trade binder for a One Piece Card Game collection — full card art, rarity-coded badges, quantity owned, and TCGplayer market prices fetched live on every page load, browsable and searchable in the format of a physical binder.
 
 ## Features
 
-- **Live pricing** — a scheduled GitHub Action refreshes card names, art, rarity, and market prices from TCGplayer's public catalog/pricing data (via [tcgcsv.com](https://tcgcsv.com)) daily, and instantly whenever you edit your collection. No manual re-export.
+- **Live pricing** — on every load, the page resolves each card's current name, art, rarity, and market price directly from TCGplayer's public catalog/pricing data (via [tcgcsv.com](https://tcgcsv.com)). No stale snapshot to keep in sync.
 - **Card grid** — every card rendered with full art, a rarity-colored badge, quantity owned, and current price
 - **Detail view** — click any card to open a modal with a direct link to its live TCGplayer listing
 - **Search** — filter by name, set, or card number as you type
 - **Filters** — narrow the binder by set or rarity via custom dropdowns
 - **Sort** — price (high/low), name, set, or quantity owned
-- **Light/dark theme** — leather-and-parchment look in both modes, toggled via the header button
-- **Summary stats** — total est. market value, unique cards, total copies, and sets represented
+- **Light/dark theme** — bright sea-and-sun palette in both modes, toggled via the header button
+- **Summary stats** — total est. market value, unique cards, total copies, and sets represented (all computed live)
 
 ## Stack
 
-Plain HTML/CSS/JS on the front end — no build step, no framework, no client-side dependencies. Pricing is refreshed server-side by a small Python script running on GitHub Actions, since TCGplayer's data mirror doesn't allow being called directly from browser JavaScript (no CORS headers) — the page itself only ever reads a same-origin JSON file.
+Plain HTML/CSS/JS — no build step, no framework, no client-side dependencies beyond `fetch`. `collection.json` is the only thing you maintain; `js/app.js` resolves everything else client-side at load time.
+
+TCGplayer's data mirror (tcgcsv.com) doesn't send CORS headers, so a browser can't call it directly from a page hosted elsewhere. `cloudflare-worker/` is a tiny (~15 line) Cloudflare Worker that sits in front of it purely to add that missing header — it doesn't transform or cache anything meaningful beyond a 5-minute edge cache. It's deployed separately from this repo (see below); nothing here builds or ships it automatically.
 
 ## Structure
 
 ```
-index.html                          Page markup, layout, controls
-css/style.css                       Theme, layout, and component styles
-js/app.js                           Renders cards.json — filtering/sorting, search, dropdowns, modal
-collection.json                     The cards you own — the only file you edit
-cards.json                          Generated. Merged card + live price data the page actually reads
-scripts/fetch_prices.py             Fetches tcgcsv.com and regenerates cards.json
-.github/workflows/refresh-prices.yml  Runs the script daily, and on every collection.json change
+index.html               Page markup, layout, controls
+css/style.css             Theme, layout, and component styles
+js/app.js                 Live data fetching, filtering/sorting, search, custom dropdowns, modal
+collection.json           The cards you own — the only file you edit
+cloudflare-worker/        Source for the CORS proxy in front of tcgcsv.com (deployed separately)
 ```
 
 ## Running locally
@@ -37,7 +37,7 @@ Static files only — serve the directory with anything that can host static ass
 python3 -m http.server 8000
 ```
 
-Then open `http://localhost:8000`. (`cards.json` must already exist — see below if you need to generate it locally.)
+Then open `http://localhost:8000`.
 
 ## Adding or removing cards
 
@@ -57,18 +57,27 @@ Edit `collection.json` directly (in GitHub's web editor, or locally) — it only
 - `printing` — `"Normal"` or `"Foil"`, matching the listing you want priced
 - `qty` — how many copies you own
 
-To add a card: find it on TCGplayer, copy its product ID and set name, add an entry, commit. To remove one: delete its entry. Pushing the change to `collection.json` triggers the Action automatically — name, card number, rarity, art, and price are all looked up and committed to `cards.json` for you within a minute or two, and the live site picks it up on next load.
+To add a card: find it on TCGplayer, copy its product ID and set name, add an entry, save. To remove one: delete its entry. Name, card number, rarity, art, and price are all looked up automatically on every page load — nothing else to fill in, and nothing else to keep updated.
 
-## How the price refresh works
+## How live pricing works
 
-`scripts/fetch_prices.py`, run by `.github/workflows/refresh-prices.yml`:
+On each page load, `js/app.js`:
 
-1. Reads `collection.json`
-2. Looks up the One Piece Card Game category and the matching set (group) IDs on tcgcsv.com
-3. Fetches each set's product and pricing data
-4. Merges it with your `collection.json` entries and writes `cards.json`
-5. Commits `cards.json` back to the repo if anything changed
+1. Fetches `collection.json`
+2. Looks up the One Piece Card Game category and the matching set (group) IDs via the Cloudflare Worker proxy in front of tcgcsv.com
+3. Fetches that set's product and pricing data
+4. Merges it with your `collection.json` entries into the cards rendered on the page
 
-The workflow runs daily (06:17 UTC) and on every push that touches `collection.json`. You can also trigger it manually from the Actions tab.
+If the proxy or tcgcsv.com is unreachable, the page shows an error state rather than falling back to stale numbers — refresh to retry.
 
-To regenerate `cards.json` locally: `python3 scripts/fetch_prices.py` (requires network access to tcgcsv.com).
+## Redeploying the CORS proxy
+
+The live Worker URL is hardcoded in `js/app.js` (`TCGCSV_BASE`). If it ever needs to move or be redeployed:
+
+```bash
+cd cloudflare-worker
+npx wrangler login
+npx wrangler deploy
+```
+
+This prints the Worker's `*.workers.dev` URL — update `TCGCSV_BASE` in `js/app.js` if it changes.

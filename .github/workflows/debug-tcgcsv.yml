@@ -1,6 +1,10 @@
 name: Debug tcgcsv.com
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/repository-push-5c1nqs]
+    paths: [.github/workflows/debug-tcgcsv.yml]
 
 jobs:
   debug:

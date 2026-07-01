@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Trent's One Piece Trade Binder</title>
-<meta name="description" content="A digital One Piece TCG trade binder — card art and live TCGplayer market prices." />
+<meta name="description" content="A digital One Piece TCG trade binder — card art and live-fetched TCGplayer market prices." />
 
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
@@ -42,9 +42,9 @@
 <main>
   <section class="hero">
     <div class="hero-inner">
-      <p class="hero-kicker">DIGITAL BINDER · 118 CARDS ON FILE</p>
+      <p class="hero-kicker" id="heroKicker">DIGITAL BINDER</p>
       <h1 class="hero-title">The Trade Binder</h1>
-      <p class="hero-desc">A running ledger of every card in the trade box — full art, set, rarity, and the latest TCGplayer market price. Click any card to open its live listing.</p>
+      <p class="hero-desc">A running ledger of every card in the trade box — full art, set, rarity, and a live TCGplayer market price fetched fresh on every visit. Click any card to open its live listing.</p>
       <div class="stat-row" id="statRow">
         <div class="stat-card">
           <span class="stat-value" id="statTotalValue">$0.00</span>
@@ -118,7 +118,7 @@
 </main>
 
 <footer class="site-footer">
-  <p>Prices sourced from <a href="https://www.tcgplayer.com/categories/trading-and-collectible-card-games/one-piece-card-game" target="_blank" rel="noopener">TCGplayer</a> market data at time of export. Click a card to view its current live listing.</p>
+  <p>Prices are fetched live from <a href="https://www.tcgplayer.com/categories/trading-and-collectible-card-games/one-piece-card-game" target="_blank" rel="noopener">TCGplayer</a> market data on every page load. Click a card to view its current live listing.</p>
 </footer>
 
 <div class="card-modal" id="cardModal" data-testid="modal-card-detail">

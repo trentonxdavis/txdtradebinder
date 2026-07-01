@@ -52,6 +52,22 @@ def extended_value(product, pattern):
 NUMBER_RE = re.compile("number", re.I)
 RARITY_RE = re.compile("rarity", re.I)
 
+# tcgcsv's extendedData returns One Piece TCG rarities as short codes rather
+# than full names; map them to the names the UI's rarity color-coding (see
+# css/style.css .rarity-*) expects.
+RARITY_NAMES = {
+    "C": "Common",
+    "UC": "Uncommon",
+    "R": "Rare",
+    "SR": "Super Rare",
+    "SEC": "Secret Rare",
+    "L": "Leader",
+    "P": "Promo",
+    "PR": "Promo",
+    "SP": "Special",
+    "DON!!": "Don!!",
+}
+
 
 def build_card(entry, product, price_entry):
     has_price = price_entry is not None and (
@@ -64,12 +80,13 @@ def build_card(entry, product, price_entry):
             price = price_entry.get("midPrice")
 
     product_id = entry["productId"]
+    rarity_code = extended_value(product, RARITY_RE) if product else ""
     return {
         "id": str(product_id),
         "name": product["name"] if product else f"Unknown card #{product_id}",
         "set": entry["set"],
         "number": extended_value(product, NUMBER_RE) if product else "",
-        "rarity": (extended_value(product, RARITY_RE) if product else "") or "Unknown",
+        "rarity": RARITY_NAMES.get(rarity_code, rarity_code) or "Unknown",
         "condition": "Near Mint",
         "printing": entry["printing"],
         "price": price,

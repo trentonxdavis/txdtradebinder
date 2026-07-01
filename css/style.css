@@ -22,13 +22,6 @@
   --color-primary-hover: #78530c;
   --color-primary-text-on: #fffaf0;
 
-  --color-secret: #a13a33;
-  --color-super: #256863;
-  --color-rare: #3c5182;
-  --color-leader: #6c4d9c;
-  --color-promo: #8a6c22;
-  --color-common: #736c5c;
-
   --scrim: rgba(8, 6, 4, 0.6);
   --shadow-card: 0 10px 26px -8px rgba(36, 27, 15, 0.3), 0 2px 6px rgba(36, 27, 15, 0.16);
   --shadow-elevated: 0 20px 46px -12px rgba(36, 27, 15, 0.4);
@@ -51,13 +44,6 @@
   --color-primary: #d8a12b;
   --color-primary-hover: #e8b545;
   --color-primary-text-on: #14100c;
-
-  --color-secret: #e2695f;
-  --color-super: #4fa89f;
-  --color-rare: #7d94c9;
-  --color-leader: #a98ad8;
-  --color-promo: #d8b25a;
-  --color-common: #a9a292;
 
   --scrim: rgba(0, 0, 0, 0.72);
   --shadow-card: 0 10px 30px -8px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
@@ -487,7 +473,9 @@ select, input { font-family: inherit; }
   font-weight: 600;
   padding: 2px 7px;
   border-radius: 999px;
-  color: #14100c;
+  background: rgba(12,10,8,0.82);
+  color: #efc158;
+  border: 1px solid rgba(216,161,43,0.4);
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
@@ -528,14 +516,6 @@ select, input { font-family: inherit; }
   font-size: 10px;
   color: var(--color-text-muted);
 }
-
-/* rarity color coding */
-.rarity-secret-rare { background: var(--color-secret); }
-.rarity-super-rare { background: var(--color-super); }
-.rarity-rare { background: var(--color-rare); }
-.rarity-leader { background: var(--color-leader); }
-.rarity-promo { background: var(--color-promo); }
-.rarity-common, .rarity-don { background: var(--color-common); }
 
 /* =========================================================
    FOOTER

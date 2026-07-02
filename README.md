@@ -22,11 +22,12 @@ TCGplayer's data mirror (tcgcsv.com) doesn't send CORS headers, so a browser can
 ## Structure
 
 ```
-index.html               Page markup, layout, controls
-css/style.css             Theme, layout, and component styles
-js/app.js                 Live data fetching, filtering/sorting, search, custom dropdowns, modal
-collection.json           The cards you own — the only file you edit
-cloudflare-worker/        Source for the CORS proxy in front of tcgcsv.com (deployed separately)
+index.html                    Page markup, layout, controls
+css/style.css                  Theme, layout, and component styles
+js/app.js                      Live data fetching, filtering/sorting, search, custom dropdowns, modal
+collection.json                The cards you own
+scripts/import_collection.py   Rebuilds collection.json from a TCGplayer app CSV export
+cloudflare-worker/             Source for the CORS proxy in front of tcgcsv.com (deployed separately)
 ```
 
 ## Running locally
@@ -41,7 +42,7 @@ Then open `http://localhost:8000`.
 
 ## Adding or removing cards
 
-Edit `collection.json` directly (in GitHub's web editor, or locally) — it only needs four fields per card:
+`collection.json` only needs four fields per card:
 
 ```json
 {
@@ -57,7 +58,21 @@ Edit `collection.json` directly (in GitHub's web editor, or locally) — it only
 - `printing` — `"Normal"` or `"Foil"`, matching the listing you want priced
 - `qty` — how many copies you own
 
-To add a card: find it on TCGplayer, copy its product ID and set name, add an entry, save. To remove one: delete its entry. Name, card number, rarity, art, and price are all looked up automatically on every page load — nothing else to fill in, and nothing else to keep updated.
+Name, card number, rarity, art, and price are all looked up automatically on every page load — nothing else to fill in, and nothing else to keep updated.
+
+### From the TCGplayer app (recommended)
+
+The TCGplayer app's collection export is the actual source of truth here — scan your cards in the app, then:
+
+1. Export/share your collection as a CSV from the app
+2. Run: `python3 scripts/import_collection.py path/to/export.csv`
+3. Commit and push the resulting `collection.json`
+
+The export is treated as your *entire* current collection, not a delta — `collection.json` is rebuilt from scratch each run, so a card you've removed from the app (sold, traded away) just drops out on the next import. No manual add/remove editing needed once you're scanning through the app.
+
+### Manually
+
+For a one-off addition without a fresh app export: find the card on TCGplayer, copy its product ID and set name from the URL, and add an entry directly to `collection.json`. To remove one, delete its entry.
 
 ## How live pricing works
 

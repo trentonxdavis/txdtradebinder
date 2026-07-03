@@ -136,12 +136,19 @@
   function buildCard(entry, product, priceEntry) {
     var hasPrice = !!priceEntry && (priceEntry.marketPrice != null || priceEntry.midPrice != null);
     var rarityCode = product ? extendedValue(product, /rarity/i) : '';
+    var rarity = (RARITY_NAMES[rarityCode] || rarityCode) || 'Unknown';
+    // tcgcsv tags "(SP)" alt-art cards with the same rarity code as their
+    // regular counterpart (e.g. SR) - the "(SP)" suffix in the product
+    // name is the only signal that it's actually the rarer Special variant.
+    if (product && /\(SP\)/i.test(product.name)) {
+      rarity = 'Special Rare';
+    }
     return {
       id: String(entry.productId),
       name: product ? product.name : ('Unknown card #' + entry.productId),
       set: entry.set,
       number: product ? extendedValue(product, /number/i) : '',
-      rarity: (RARITY_NAMES[rarityCode] || rarityCode) || 'Unknown',
+      rarity: rarity,
       condition: 'Near Mint',
       printing: entry.printing,
       price: hasPrice ? (priceEntry.marketPrice != null ? priceEntry.marketPrice : priceEntry.midPrice) : null,

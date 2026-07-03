@@ -1,4 +1,4 @@
-# Trent's One Piece Trade Binder
+# The Trade Binder — One Piece TCG
 
 A digital trade binder for a One Piece Card Game collection — full card art, rarity-coded badges, quantity owned, and TCGplayer market prices fetched live on every page load, browsable and searchable in the format of a physical binder.
 

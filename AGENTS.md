@@ -4,7 +4,7 @@ Guidance for AI agents working on this repo. Read this before making changes —
 
 ## What this is
 
-A static single-page site: a personal One Piece Card Game trade binder. Card grid with art, rarity badges, search/filter/sort, a detail modal linking to TCGplayer, light/dark theme. Deployed on GitHub Pages at `https://trentonxdavis.github.io/txdtradebinder/`.
+A static single-page site: a personal One Piece Card Game trade binder. Card grid with art, rarity badges, search/filter/sort, a detail modal linking to TCGplayer, light/dark theme. Deployed on Cloudflare Pages (see "Hosting / branch setup" below for the live URL and why it's not GitHub Pages).
 
 The entire point of the project is that pricing is **live** — resolved in the visitor's browser on every page load, not a snapshot baked in at some earlier time. That constraint shaped almost every non-obvious decision below.
 
@@ -44,13 +44,13 @@ If any step fails (proxy down, tcgcsv.com down, network issue), the page shows a
 
 ### The CORS proxy — read this before touching pricing code
 
-**tcgcsv.com (the public TCGplayer catalog/pricing mirror this site depends on) sends no `Access-Control-Allow-Origin` header.** A browser on `trentonxdavis.github.io` cannot call it directly — the request goes out, tcgcsv.com answers correctly, and the browser silently discards the response before JS ever sees it. This isn't visible in most testing because:
+**tcgcsv.com (the public TCGplayer catalog/pricing mirror this site depends on) sends no `Access-Control-Allow-Origin` header.** A browser on the deployed site can't call it directly — the request goes out, tcgcsv.com answers correctly, and the browser silently discards the response before JS ever sees it. This isn't visible in most testing because:
 - `curl`/server-side requests aren't subject to CORS at all (curling tcgcsv.com "works fine")
 - Sandboxed test harnesses that mock `fetch()` responses (e.g. Playwright `page.route()`) don't enforce CORS either, so mocked tests pass even against a real CORS bug
 
 The actual failure only shows up in a **real browser hitting the real endpoint**, which is exactly what burned significant time in this project's history (see below). If you're debugging "pricing works in my test but not on the live site," CORS is the first thing to check — see whether the failing request is same-origin or cross-origin, and check the response headers on the failing request specifically, not just whether the endpoint returns 200 somewhere else.
 
-The fix in place: `https://txdtradebinder-proxy.txdavis.workers.dev` is a Cloudflare Worker (source in `cloudflare-worker/`) that proxies `tcgcsv.com` 1:1 and adds `Access-Control-Allow-Origin: *`. `js/app.js`'s `TCGCSV_BASE` constant points at it instead of at tcgcsv.com directly. It is **deployed independently of this repo** — there is no CI step that builds or ships it. If it ever needs to move:
+The fix in place: `https://txdtradebinder-proxy.trashdragon.workers.dev` is a Cloudflare Worker (source in `cloudflare-worker/`) that proxies `tcgcsv.com` 1:1 and adds `Access-Control-Allow-Origin: *`. `js/app.js`'s `TCGCSV_BASE` constant points at it instead of at tcgcsv.com directly. It is **deployed independently of this repo** — there is no CI step that builds or ships it. If it ever needs to move:
 ```bash
 cd cloudflare-worker
 npx wrangler login
@@ -62,9 +62,11 @@ npx wrangler deploy
 
 tcgcsv.com's product `extendedData` returns One Piece TCG rarities as **short codes**, not full names: `SR`, `SEC`, `L`, `C`, `R`, `P`/`PR`, `SP`, `DON!!`. The CSS rarity badge styling and the general UI expect full names (`Super Rare`, `Secret Rare`, etc.). `js/app.js` has a `RARITY_NAMES` map near the top that translates known codes; if TCGplayer adds a new rarity tier and a card shows an unstyled/oddly-cased badge, that's the first place to look — add the missing code to the map rather than guessing at a broader fix.
 
-### GitHub Pages / branch setup
+### Hosting / branch setup
 
-There is no `main` branch in this repo. The working branch (`claude/repository-push-5c1nqs` at time of writing — check `git branch --show-current` / `git remote show origin`, don't assume) **is** the default branch, and GitHub Pages is configured (Settings → Pages, done manually in the dashboard, not in-repo) to deploy from it at the repo root. If you create a new default branch or rename this one, Pages settings need updating too — that's a manual dashboard action no agent can currently do via available tooling (see "Tooling constraints" below).
+There is no `main` branch in this repo. The working branch (`claude/repository-push-5c1nqs` at time of writing — check `git branch --show-current` / `git remote show origin`, don't assume) **is** the default branch.
+
+The site is deployed via a **Cloudflare Pages** project connected to this GitHub repo (auto-deploys on push to the default branch, build command none, root directory `/` — it's static files, no build step). This replaced an earlier GitHub Pages deployment specifically to get a hostname (`*.pages.dev`) that doesn't embed the account owner's identity the way `{username}.github.io` does. Check the live URL in the Cloudflare Pages dashboard rather than assuming — it's a randomly-suffixed `*.pages.dev` address, not something derivable from the repo name. All of this is configured manually in the Cloudflare dashboard, not in-repo; no agent tooling currently available can change Pages/DNS settings directly.
 
 ## Updating the collection
 

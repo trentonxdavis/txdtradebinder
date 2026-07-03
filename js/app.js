@@ -4,7 +4,7 @@
   // Proxies tcgcsv.com and adds the CORS header it doesn't send itself, so
   // this page can call it directly from the browser. See cloudflare-worker/
   // for the proxy's source.
-  var TCGCSV_BASE = 'https://txdtradebinder-proxy.txdavis.workers.dev/tcgplayer';
+  var TCGCSV_BASE = 'https://txdtradebinder-proxy.trashdragon.workers.dev/tcgplayer';
 
   // tcgcsv's extendedData returns One Piece TCG rarities as short codes
   // rather than full names; map them to the names the UI's rarity styling

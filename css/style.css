@@ -180,6 +180,34 @@ select, input { font-family: inherit; }
 [data-theme='dark'] .icon-moon { display: block; }
 
 /* =========================================================
+   VIEW TABS
+   ========================================================= */
+.view-tabs {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-6) 0;
+  position: relative;
+  z-index: 1;
+}
+.view-tab {
+  background: var(--color-panel);
+  border: 1px solid var(--color-panel-border);
+  color: var(--color-text-muted);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-5);
+  border-radius: 999px;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.view-tab:hover { border-color: var(--color-primary); }
+.view-tab.is-active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-primary-text-on);
+}
+
+/* =========================================================
    HERO
    ========================================================= */
 .hero {

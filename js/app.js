@@ -22,7 +22,13 @@
     'DON!!': 'Don!!',
   };
 
+  var DATASETS = {
+    binder: { file: 'collection.json', label: 'My Binder' },
+    wantlist: { file: 'wantlist.json', label: 'Want List' },
+  };
+
   var state = {
+    mode: 'binder',
     cards: [],
     stats: {},
     filtered: [],
@@ -31,6 +37,13 @@
     rarityFilter: '',
     sort: 'price-desc',
   };
+
+  // Cache per dataset (binder/wantlist) so switching tabs doesn't refetch,
+  // and cache catalog/group lookups globally since both datasets draw from
+  // the same One Piece TCG catalog on tcgcsv.com.
+  var datasetCache = {};
+  var catalogCache = null;
+  var groupDataCache = {};
 
   var els = {};
 
@@ -66,9 +79,31 @@
     els.modalContent = document.getElementById('modalContent');
     els.modalClose = document.getElementById('modalClose');
     els.modalBackdrop = document.getElementById('modalBackdrop');
+    els.tabBinder = document.getElementById('tabBinder');
+    els.tabWantlist = document.getElementById('tabWantlist');
 
     setupTheme();
-    loadCollection();
+    setupTabs();
+    setupCustomSelects();
+    bindEvents();
+    loadDataset('binder');
+  }
+
+  function setupTabs() {
+    els.tabBinder.addEventListener('click', function () { switchMode('binder'); });
+    els.tabWantlist.addEventListener('click', function () { switchMode('wantlist'); });
+  }
+
+  function switchMode(mode) {
+    if (mode === state.mode && datasetCache[mode]) return;
+    state.mode = mode;
+    els.tabBinder.classList.toggle('is-active', mode === 'binder');
+    els.tabWantlist.classList.toggle('is-active', mode === 'wantlist');
+    state.search = '';
+    state.setFilter = '';
+    state.rarityFilter = '';
+    els.searchInput.value = '';
+    loadDataset(mode);
   }
 
   function setupTheme() {
@@ -152,7 +187,7 @@
       condition: 'Near Mint',
       printing: entry.printing,
       price: hasPrice ? (priceEntry.marketPrice != null ? priceEntry.marketPrice : priceEntry.midPrice) : null,
-      qty: entry.qty,
+      qty: entry.qty || 1,
       photo: (product && product.imageUrl) || ('https://tcgplayer-cdn.tcgplayer.com/product/' + entry.productId + '_in_400x400.jpg'),
       tcgUrl: (product && product.url) || ('https://www.tcgplayer.com/product/' + entry.productId),
     };
@@ -175,60 +210,86 @@
     };
   }
 
-  function loadCollection() {
-    showLoadingState();
+  function getCatalog() {
+    if (catalogCache) return Promise.resolve(catalogCache);
+    return fetchCategoryId().then(function (categoryId) {
+      return fetchGroups(categoryId).then(function (groups) {
+        var groupIdByName = {};
+        groups.forEach(function (g) {
+          groupIdByName[normalizeName(g.name)] = g.groupId;
+        });
+        catalogCache = { categoryId: categoryId, groupIdByName: groupIdByName };
+        return catalogCache;
+      });
+    });
+  }
 
-    fetchJson('collection.json')
-      .then(function (collection) {
-        return fetchCategoryId().then(function (categoryId) {
-          return fetchGroups(categoryId).then(function (groups) {
-            var groupIdByName = {};
-            groups.forEach(function (g) {
-              groupIdByName[normalizeName(g.name)] = g.groupId;
-            });
+  function getGroupData(categoryId, groupId) {
+    if (groupDataCache[groupId]) return groupDataCache[groupId];
+    groupDataCache[groupId] = fetchGroupData(categoryId, groupId);
+    return groupDataCache[groupId];
+  }
 
-            var uniqueSets = Array.from(new Set(collection.map(function (e) { return e.set; })));
-            var groupIds = uniqueSets
-              .map(function (setName) {
-                var groupId = groupIdByName[normalizeName(setName)];
-                if (!groupId) console.warn('No matching TCGplayer set found for "' + setName + '"');
-                return groupId;
-              })
-              .filter(function (id) { return id != null; });
+  function fetchCards(file) {
+    return fetchJson(file).then(function (entries) {
+      return getCatalog().then(function (catalog) {
+        var uniqueSets = Array.from(new Set(entries.map(function (e) { return e.set; })));
+        var groupIds = uniqueSets
+          .map(function (setName) {
+            var groupId = catalog.groupIdByName[normalizeName(setName)];
+            if (!groupId) console.warn('No matching TCGplayer set found for "' + setName + '"');
+            return groupId;
+          })
+          .filter(function (id) { return id != null; });
 
-            return Promise.all(groupIds.map(function (groupId) {
-              return fetchGroupData(categoryId, groupId);
-            })).then(function (groupDataList) {
-              var productsById = {};
-              var pricesByKey = {};
-              groupDataList.forEach(function (data) {
-                data.products.forEach(function (p) { productsById[p.productId] = p; });
-                data.prices.forEach(function (pr) {
-                  pricesByKey[pr.productId + '|' + normalizeName(pr.subTypeName)] = pr;
-                });
-              });
-
-              return collection.map(function (entry) {
-                var product = productsById[entry.productId];
-                var priceEntry = pricesByKey[entry.productId + '|' + normalizeName(entry.printing)];
-                return buildCard(entry, product, priceEntry);
-              });
+        return Promise.all(groupIds.map(function (groupId) {
+          return getGroupData(catalog.categoryId, groupId);
+        })).then(function (groupDataList) {
+          var productsById = {};
+          var pricesByKey = {};
+          groupDataList.forEach(function (data) {
+            data.products.forEach(function (p) { productsById[p.productId] = p; });
+            data.prices.forEach(function (pr) {
+              pricesByKey[pr.productId + '|' + normalizeName(pr.subTypeName)] = pr;
             });
           });
+
+          return entries.map(function (entry) {
+            var product = productsById[entry.productId];
+            var priceEntry = pricesByKey[entry.productId + '|' + normalizeName(entry.printing)];
+            return buildCard(entry, product, priceEntry);
+          });
         });
-      })
+      });
+    });
+  }
+
+  function loadDataset(mode) {
+    if (datasetCache[mode]) {
+      applyDataset(mode, datasetCache[mode]);
+      return;
+    }
+
+    showLoadingState();
+
+    fetchCards(DATASETS[mode].file)
       .then(function (cards) {
-        state.cards = cards;
-        state.stats = computeStats(cards);
-        populateFilters();
-        renderStats();
-        applyFilters();
-        bindEvents();
+        datasetCache[mode] = cards;
+        if (state.mode === mode) applyDataset(mode, cards);
       })
       .catch(function (err) {
-        showErrorState();
+        if (state.mode === mode) showErrorState();
         console.error(err);
       });
+  }
+
+  function applyDataset(mode, cards) {
+    state.mode = mode;
+    state.cards = cards;
+    state.stats = computeStats(cards);
+    populateFilters();
+    renderStats();
+    applyFilters();
   }
 
   function showLoadingState() {
@@ -243,32 +304,11 @@
     els.emptyState.textContent = 'Could not load live pricing right now. Try refreshing.';
   }
 
-  function populateFilters() {
-    var sets = Array.from(new Set(state.cards.map(function (c) { return c.set; }))).sort();
-    var rarities = Array.from(new Set(state.cards.map(function (c) { return c.rarity; }))).sort();
-
-    var setList = els.setFilter.querySelector('.custom-select-list');
-    sets.forEach(function (s) {
-      var li = document.createElement('li');
-      li.className = 'custom-select-option';
-      li.setAttribute('role', 'option');
-      li.setAttribute('data-value', s);
-      li.setAttribute('tabindex', '0');
-      li.textContent = s;
-      setList.appendChild(li);
-    });
-
-    var rarityList = els.rarityFilter.querySelector('.custom-select-list');
-    rarities.forEach(function (r) {
-      var li = document.createElement('li');
-      li.className = 'custom-select-option';
-      li.setAttribute('role', 'option');
-      li.setAttribute('data-value', r);
-      li.setAttribute('tabindex', '0');
-      li.textContent = r;
-      rarityList.appendChild(li);
-    });
-
+  // Wires up interactivity once at startup. populateFilters() below only
+  // rebuilds the option lists (called on every dataset load/tab switch) -
+  // it must not re-run this, since the trigger/list DOM nodes persist
+  // across tab switches and re-wiring would stack duplicate listeners.
+  function setupCustomSelects() {
     initCustomSelect(els.setFilter, function (value) {
       state.setFilter = value;
       applyFilters();
@@ -280,6 +320,48 @@
     initCustomSelect(els.sortSelect, function (value) {
       state.sort = value;
       applyFilters();
+    });
+  }
+
+  function resetSelectOptions(root, placeholderLabel) {
+    var list = root.querySelector('.custom-select-list');
+    list.innerHTML = '';
+    var placeholder = document.createElement('li');
+    placeholder.className = 'custom-select-option is-selected';
+    placeholder.setAttribute('role', 'option');
+    placeholder.setAttribute('data-value', '');
+    placeholder.setAttribute('aria-selected', 'true');
+    placeholder.setAttribute('tabindex', '0');
+    placeholder.textContent = placeholderLabel;
+    list.appendChild(placeholder);
+    root.querySelector('.custom-select-value').textContent = placeholderLabel;
+    return list;
+  }
+
+  function populateFilters() {
+    var sets = Array.from(new Set(state.cards.map(function (c) { return c.set; }))).sort();
+    var rarities = Array.from(new Set(state.cards.map(function (c) { return c.rarity; }))).sort();
+
+    var setList = resetSelectOptions(els.setFilter, 'All Sets');
+    sets.forEach(function (s) {
+      var li = document.createElement('li');
+      li.className = 'custom-select-option';
+      li.setAttribute('role', 'option');
+      li.setAttribute('data-value', s);
+      li.setAttribute('tabindex', '0');
+      li.textContent = s;
+      setList.appendChild(li);
+    });
+
+    var rarityList = resetSelectOptions(els.rarityFilter, 'All Rarities');
+    rarities.forEach(function (r) {
+      var li = document.createElement('li');
+      li.className = 'custom-select-option';
+      li.setAttribute('role', 'option');
+      li.setAttribute('data-value', r);
+      li.setAttribute('tabindex', '0');
+      li.textContent = r;
+      rarityList.appendChild(li);
     });
   }
 
@@ -386,7 +468,8 @@
     animateNumber(els.statTotalQty, 0, state.stats.totalQty, false);
     animateNumber(els.statSets, 0, state.stats.sets, false);
     if (els.heroKicker) {
-      els.heroKicker.textContent = 'DIGITAL BINDER · ' + state.stats.totalCards + ' CARDS ON FILE';
+      var kickerLabel = state.mode === 'wantlist' ? 'WANT LIST' : 'DIGITAL BINDER';
+      els.heroKicker.textContent = kickerLabel + ' · ' + state.stats.totalCards + ' CARDS';
     }
   }
 
@@ -517,7 +600,7 @@
           '<p class="modal-price-label">TCGplayer Market Price (live)</p>' +
           '<p class="modal-price-value" data-testid="text-modal-price">' + formatPrice(card.price) + '</p>' +
         '</div>' +
-        '<p class="modal-qty">Owned: <strong>' + card.qty + '</strong> cop' + (card.qty === 1 ? 'y' : 'ies') + '</p>' +
+        (state.mode === 'binder' ? '<p class="modal-qty">Owned: <strong>' + card.qty + '</strong> cop' + (card.qty === 1 ? 'y' : 'ies') + '</p>' : '') +
         '<a class="modal-cta" href="' + card.tcgUrl + '" target="_blank" rel="noopener" data-testid="link-tcgplayer">' +
           'View on TCGplayer' +
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>' +

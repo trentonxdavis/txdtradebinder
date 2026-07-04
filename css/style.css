@@ -214,7 +214,7 @@ select, input { font-family: inherit; }
   position: relative;
   padding: var(--space-20) var(--space-6) var(--space-16);
   background:
-    radial-gradient(ellipse 60% 50% at 50% 0%, color-mix(in srgb, var(--color-gold) 30%, transparent), transparent 65%),
+    radial-gradient(ellipse 55% 40% at 50% -15%, color-mix(in srgb, var(--color-gold) 16%, transparent), transparent 60%),
     radial-gradient(ellipse 40% 30% at 85% 15%, color-mix(in srgb, #ffffff 55%, transparent), transparent 70%),
     radial-gradient(ellipse 35% 25% at 12% 10%, color-mix(in srgb, #ffffff 45%, transparent), transparent 70%);
   text-align: center;

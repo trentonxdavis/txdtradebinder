@@ -22,7 +22,7 @@ TCGCSV_BASE = "https://txdtradebinder-proxy.trashdragon.workers.dev/tcgplayer"
 TARGETS = [
     ("Smoker (093)", "Paramount War"),
     ("Jinbe - ST01-005", "One Piece Promotion Cards"),
-    ("Dereshi", "One Piece Promotion Cards"),
+    ("Dereshi", "Premium Card Collection -Best Selection Vol. 4-"),
     ("Nami - OP01-016", "One Piece Promotion Cards"),
     ("Yamato", "Wings of the Captain"),
     ("Yamato (Event Pack Vol. 3)", "One Piece Promotion Cards"),

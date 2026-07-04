@@ -22,26 +22,7 @@ TCGCSV_BASE = "https://txdtradebinder-proxy.trashdragon.workers.dev/tcgplayer"
 # results further when several products in a set share a similar name
 # (e.g. a card and its Parallel/Alternate Art both numbered the same).
 TARGETS = [
-    ("Enel", "Adventure on Kami's Island", "OP15-118"),
-    ("Monkey.D.Luffy", "The Time of Battle", "OP16-015"),
-    ("Boa Hancock", "The Time of Battle", "OP16-032"),
-    ("Zehahahahaha", "The Time of Battle", "OP16-116"),
-    ("Kuzan", "The Time of Battle", "OP16-063"),
-    ("Yamato (Premium Card Collection -6 assort", "One Piece Promotion Cards", None),
-    ("Yamato (OP04-112)", "Premium Booster -The Best-", "OP04-112"),
-    ("Yamato (OP01-121)", "Premium Booster -The Best-", "OP01-121"),
-    ("Yamato", "Extra Booster: Anime 25th Collection", "EB02-006"),
-    ("Yamato", "Carrying On His Will", "OP13-054"),
-    ("Yamato (079)", "The Time of Battle", "OP16-079"),
-    ("Yamato (Illustration Box Vol.2)", "One Piece Promotion Cards", "ST13-016"),
-    ("Yamato (SP)", "Extra Booster: Anime 25th Collection", "OP06-022"),
-    ("Yamato (SP)", "Awakening of the New Era", "OP01-121"),
-    ("Yamato", "Romance Dawn", "OP01-121"),
-    ("Monkey.D.Luffy (024)", "Romance Dawn", "OP01-024"),
-    ("Nami (040)", "Pillars of Strength", "OP03-040"),
-    ("Shanks", "Romance Dawn", "OP01-120"),
-    ("Yamato (Parallel)", "Romance Dawn", "OP01-121"),
-    ("Roronoa Zoro", "Wings of the Captain", "OP06-118"),
+    ("Ms.All.Sunday", "Kingdoms of Intrigue", "OP04-064"),
 ]
 
 

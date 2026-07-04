@@ -1,4 +1,0 @@
-
-'Ms.All.Sunday' in 'Kingdoms of Intrigue' #OP04-064:
-  productId=514245  name='Ms. All Sunday'  number='OP04-064'  rarity='SR'
-  productId=514246  name='Ms. All Sunday (Alternate Art)'  number='OP04-064'  rarity='SR'

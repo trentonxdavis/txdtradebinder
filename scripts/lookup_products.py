@@ -16,24 +16,32 @@ import urllib.request
 
 TCGCSV_BASE = "https://txdtradebinder-proxy.trashdragon.workers.dev/tcgplayer"
 
-# (name query, set name) pairs to look up. Name query just needs to be a
-# distinctive substring - matching is case-insensitive and ignores
-# punctuation.
+# (name query, set name, card number or None) to look up. Name query just
+# needs to be a distinctive substring - matching is case-insensitive and
+# ignores punctuation. Card number (tcgcsv extendedData "Number") narrows
+# results further when several products in a set share a similar name
+# (e.g. a card and its Parallel/Alternate Art both numbered the same).
 TARGETS = [
-    ("Smoker (093)", "Paramount War"),
-    ("Jinbe - ST01-005", "One Piece Promotion Cards"),
-    ("Dereshi", "Premium Card Collection -Best Selection Vol. 4-"),
-    ("Nami - OP01-016", "One Piece Promotion Cards"),
-    ("Yamato", "Wings of the Captain"),
-    ("Yamato (Event Pack Vol. 3)", "One Piece Promotion Cards"),
-    ("Usopp - ST01-002", "One Piece Promotion Cards"),
-    ("Roronoa Zoro (EB04-007)", "Adventure on Kami's Island"),
-    ("Yamato (CS 2024", "One Piece Promotion Cards"),
-    ("Nico Robin - ST01-008", "One Piece Promotion Cards"),
-    ("Roronoa Zoro - OP01-001", "One Piece Promotion Cards"),
-    ("Monkey.D.Luffy", "One Piece Promotion Cards"),
-    ("Sanji - OP01-013", "One Piece Promotion Cards"),
-    ("Brook - OP01-022", "One Piece Promotion Cards"),
+    ("Enel", "Adventure on Kami's Island", "OP15-118"),
+    ("Monkey.D.Luffy", "The Time of Battle", "OP16-015"),
+    ("Boa Hancock", "The Time of Battle", "OP16-032"),
+    ("Zehahahahaha", "The Time of Battle", "OP16-116"),
+    ("Kuzan", "The Time of Battle", "OP16-063"),
+    ("Yamato (Premium Card Collection -6 assort", "One Piece Promotion Cards", None),
+    ("Yamato (OP04-112)", "Premium Booster -The Best-", "OP04-112"),
+    ("Yamato (OP01-121)", "Premium Booster -The Best-", "OP01-121"),
+    ("Yamato", "Extra Booster: Anime 25th Collection", "EB02-006"),
+    ("Yamato", "Carrying On His Will", "OP13-054"),
+    ("Yamato (079)", "The Time of Battle", "OP16-079"),
+    ("Yamato (Illustration Box Vol.2)", "One Piece Promotion Cards", "ST13-016"),
+    ("Yamato (SP)", "Extra Booster: Anime 25th Collection", "OP06-022"),
+    ("Yamato (SP)", "Awakening of the New Era", "OP01-121"),
+    ("Yamato", "Romance Dawn", "OP01-121"),
+    ("Monkey.D.Luffy (024)", "Romance Dawn", "OP01-024"),
+    ("Nami (040)", "Pillars of Strength", "OP03-040"),
+    ("Shanks", "Romance Dawn", "OP01-120"),
+    ("Yamato (Parallel)", "Romance Dawn", "OP01-121"),
+    ("Roronoa Zoro", "Wings of the Captain", "OP06-118"),
 ]
 
 
@@ -67,13 +75,27 @@ def main():
             products_cache[group_id] = fetch_json(f"{TCGCSV_BASE}/{category_id}/{group_id}/products")["results"]
         return products_cache[group_id]
 
-    for name_query, set_name in TARGETS:
-        print(f"\n{name_query!r} in {set_name!r}:")
+    def product_field(product, pattern):
+        for field in product.get("extendedData") or []:
+            if pattern.search(field.get("name") or ""):
+                return field.get("value") or ""
+        return ""
+
+    number_re = re.compile("number", re.I)
+    rarity_re = re.compile("rarity", re.I)
+
+    for name_query, set_name, number in TARGETS:
+        label = f"{name_query!r} in {set_name!r}" + (f" #{number}" if number else "")
+        print(f"\n{label}:")
         candidates = [p for p in products_for_set(set_name) if normalize(name_query) in normalize(p["name"])]
+        if number:
+            candidates = [p for p in candidates if normalize(number) == normalize(product_field(p, number_re))]
         if not candidates:
             print("  no matches")
         for p in candidates:
-            print(f"  productId={p['productId']}  name={p['name']!r}  url={p.get('url', '')}")
+            num = product_field(p, number_re)
+            rarity = product_field(p, rarity_re)
+            print(f"  productId={p['productId']}  name={p['name']!r}  number={num!r}  rarity={rarity!r}")
 
 
 if __name__ == "__main__":

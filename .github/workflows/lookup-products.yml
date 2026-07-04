@@ -1,0 +1,32 @@
+name: Lookup products
+
+on:
+  push:
+    branches: [claude/repository-push-5c1nqs]
+    paths:
+      - scripts/lookup_products.py
+      - .github/workflows/lookup-products.yml
+
+permissions:
+  contents: write
+
+jobs:
+  lookup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run lookup
+        run: python3 scripts/lookup_products.py > scripts/lookup-results.txt
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/lookup-results.txt
+          if git diff --cached --quiet; then
+            echo "No change in results."
+            exit 0
+          fi
+          git commit -m "Update product lookup results"
+          git push
